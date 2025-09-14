@@ -172,7 +172,6 @@ async function ownerFlow(){
   onChildAdded(messagesRef, s=> addMsg(s.val()));
 
   info('Bạn là chủ phòng. Người khác cần bạn duyệt để vào.');
-  // giữ URL có ?room= để mời người khác
   history.replaceState({}, '', roomLink(currentCode));
 }
 
@@ -234,7 +233,6 @@ async function pushFile(file){
 sendBtn && sendBtn.addEventListener('click', async ()=>{
   const t = (msgInput?.value||'').trim();
   if(!t) return;
-  // Allow entering room code via composer
   if(isCode(t)){
     if(currentCode && t.toUpperCase() !== currentCode){
       if(!confirm(`Vào phòng ${t.toUpperCase()}? Bạn sẽ rời phòng hiện tại.`)) return;
@@ -267,7 +265,7 @@ fileInput && fileInput.addEventListener('change', async (e)=>{
 
 homeBtn && homeBtn.addEventListener('click', (e)=>{
   e.preventDefault?.();
-  location.href = location.origin + location.pathname; // new room
+  location.href = location.origin + location.pathname;
 });
 
 // ===== Bootstrap =====
@@ -279,7 +277,7 @@ onAuthStateChanged(auth, async (u)=>{
   const roomParam = (qs.get('room')||'').toUpperCase();
   try{
     if(roomParam) await joinerFlow(roomParam);
-    else await ownerFlow();  // mở app không có ?room => tạo phòng như cũ
+    else await ownerFlow();
   }catch(err){
     console.error(err);
     toast('Lỗi khởi tạo: '+(err.message||err));
