@@ -1,6 +1,4 @@
-
 // app.js — Full rewrite with room approval flow, preserving Fnn UI elements if present
-// NOTE: This file is written defensively: if a UI element isn't present in DOM, the handler is skipped.
 
 // ===== Utilities & DOM =====
 const $ = (s)=>document.querySelector(s);
@@ -174,6 +172,7 @@ async function ownerFlow(){
   onChildAdded(messagesRef, s=> addMsg(s.val()));
 
   info('Bạn là chủ phòng. Người khác cần bạn duyệt để vào.');
+  // giữ URL có ?room= để mời người khác
   history.replaceState({}, '', roomLink(currentCode));
 }
 
@@ -183,7 +182,17 @@ async function joinerFlow(code){
 
   await ensureRoom(currentCode);
 
-  // Send request & wait
+  // ✅ FIX: nếu bạn là người đầu tiên (đã thành chủ) thì KHÔNG gửi join request — chuyển sang owner mode
+  if(isOwner){
+    await update(membersRef, { 'Daibang': { name:'Daibang', ts:Date.now(), uid: MY_UID, isOwner:true } });
+    myName = 'Daibang';
+    onValue(membersRef, s=> renderMembersToChat(s.val()));
+    onChildAdded(messagesRef, s=> addMsg(s.val()));
+    info('Bạn là chủ phòng. Người khác cần bạn duyệt để vào.');
+    return;
+  }
+
+  // Non-owner: gửi yêu cầu vào phòng và chờ duyệt
   const proposed = await nextGuestName(currentCode);
   await set(child(requestsRef, MY_UID), { uid:MY_UID, proposed, ts:Date.now(), status:'pending' });
   info('Đã gửi yêu cầu vào phòng. Vui lòng chờ chủ phòng chấp nhận…');
@@ -270,7 +279,7 @@ onAuthStateChanged(auth, async (u)=>{
   const roomParam = (qs.get('room')||'').toUpperCase();
   try{
     if(roomParam) await joinerFlow(roomParam);
-    else await ownerFlow();
+    else await ownerFlow();  // mở app không có ?room => tạo phòng như cũ
   }catch(err){
     console.error(err);
     toast('Lỗi khởi tạo: '+(err.message||err));
